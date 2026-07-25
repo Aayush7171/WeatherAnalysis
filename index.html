@@ -63,7 +63,9 @@
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
   }
+
   #cityInput::placeholder { color: #b0bec5; }
+
   #cityInput:focus {
     border-color: #4a90d9;
     box-shadow: 0 0 0 4px rgba(74,144,217,0.12);
@@ -82,11 +84,20 @@
     box-shadow: 0 4px 12px rgba(74,144,217,0.3);
     transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
   }
-  #fetchBtn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(74,144,217,0.4); }
+
+  #fetchBtn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(74,144,217,0.4);
+  }
+
   #fetchBtn:active { transform: translateY(0); }
+
   #fetchBtn:disabled {
-    background: #b0bec5; cursor: not-allowed;
-    box-shadow: none; transform: none; opacity: 0.7;
+    background: #b0bec5;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+    opacity: 0.7;
   }
 
   #statusText {
@@ -155,6 +166,7 @@
     padding: 18px 18px 20px;
     transition: transform 0.15s, box-shadow 0.2s;
   }
+
   .chart-box:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(30,60,90,0.12);
@@ -173,7 +185,8 @@
   }
 
   .chart-dot {
-    width: 8px; height: 8px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     display: inline-block;
   }
@@ -206,8 +219,7 @@
 <div id="resultsArea"></div>
 
 <script>
-const OWM_API_KEY = "fe8b56bc86011acbef988a7664f5288b";
-const OWM_BASE_URL = "https://api.openweathermap.org/data/2.5/weather";
+const WEATHER_FUNCTION_URL = "/.netlify/functions/weather";
 
 let tempChart, humidityChart, windChart;
 
@@ -216,19 +228,23 @@ function titleCase(s) {
 }
 
 async function fetchCityWeather(city) {
-  const params = new URLSearchParams({ q: city, appid: OWM_API_KEY, units: "metric" });
+  const params = new URLSearchParams({ city });
   let res;
+
   try {
-    res = await fetch(`${OWM_BASE_URL}?${params.toString()}`);
+    res = await fetch(`${WEATHER_FUNCTION_URL}?${params.toString()}`);
   } catch (e) {
-    throw new Error(`${city}: network error — could not reach the weather API`);
+    throw new Error(`${city}: network error - could not reach the weather service`);
   }
 
   if (!res.ok) {
-    if (res.status === 401) throw new Error(`${city}: invalid API key`);
+    const payload = await res.json().catch(() => ({}));
+
     if (res.status === 404) throw new Error(`${city}: city not found`);
     if (res.status === 429) throw new Error(`${city}: rate limit exceeded`);
-    throw new Error(`${city}: HTTP ${res.status} error`);
+    if (res.status === 500) throw new Error(payload.error || `${city}: server error`);
+
+    throw new Error(payload.error || `${city}: HTTP ${res.status} error`);
   }
 
   const data = await res.json();
@@ -243,26 +259,29 @@ async function fetchCityWeather(city) {
   };
 }
 
-function showStatus(msg) { document.getElementById('statusText').textContent = msg; }
+function showStatus(msg) { document.getElementById("statusText").textContent = msg; }
+
 function showError(msg) {
-  const box = document.getElementById('errorBox');
+  const box = document.getElementById("errorBox");
   box.textContent = msg;
-  box.style.display = 'block';
+  box.style.display = "block";
 }
+
 function hideError() {
-  const box = document.getElementById('errorBox');
-  box.textContent = '';
-  box.style.display = 'none';
+  const box = document.getElementById("errorBox");
+  box.textContent = "";
+  box.style.display = "none";
 }
 
 function ensureChartArea() {
-  const area = document.getElementById('resultsArea');
-  if (!document.getElementById('tableWrap')) {
+  const area = document.getElementById("resultsArea");
+
+  if (!document.getElementById("tableWrap")) {
     area.innerHTML = `
       <div id="tableWrap"></div>
       <div class="chart-grid">
         <div class="chart-box">
-          <div class="chart-title"><span class="chart-dot" style="background:#e07b39"></span>Temperature (°C)</div>
+          <div class="chart-title"><span class="chart-dot" style="background:#e07b39"></span>Temperature (&deg;C)</div>
           <canvas id="tempCanvas"></canvas>
         </div>
         <div class="chart-box">
@@ -283,15 +302,15 @@ function renderTable(records) {
     <tr>
       <td>${r.city}</td>
       <td>${r.country}</td>
-      <td>${r.temp}°C</td>
-      <td>${r.feels}°C</td>
+      <td>${r.temp}&deg;C</td>
+      <td>${r.feels}&deg;C</td>
       <td>${r.humidity}%</td>
       <td>${r.wind} m/s</td>
       <td>${r.condition}</td>
     </tr>
-  `).join('');
+  `).join("");
 
-  document.getElementById('tableWrap').innerHTML = `
+  document.getElementById("tableWrap").innerHTML = `
     <table>
       <thead>
         <tr>
@@ -314,49 +333,53 @@ function renderCharts(records) {
   };
 
   if (tempChart) tempChart.destroy();
-  tempChart = new Chart(document.getElementById('tempCanvas'), {
-    type: 'bar',
+  tempChart = new Chart(document.getElementById("tempCanvas"), {
+    type: "bar",
     data: {
       labels,
-      datasets: [{ data: records.map(r => r.temp), backgroundColor: '#e07b39' }]
+      datasets: [{ data: records.map(r => r.temp), backgroundColor: "#e07b39" }]
     },
     options: baseOptions
   });
 
   if (humidityChart) humidityChart.destroy();
-  humidityChart = new Chart(document.getElementById('humidityCanvas'), {
-    type: 'bar',
+  humidityChart = new Chart(document.getElementById("humidityCanvas"), {
+    type: "bar",
     data: {
       labels,
-      datasets: [{ data: records.map(r => r.humidity), backgroundColor: '#5b9bd5' }]
+      datasets: [{ data: records.map(r => r.humidity), backgroundColor: "#5b9bd5" }]
     },
     options: baseOptions
   });
 
   if (windChart) windChart.destroy();
-  windChart = new Chart(document.getElementById('windCanvas'), {
-    type: 'bar',
+  windChart = new Chart(document.getElementById("windCanvas"), {
+    type: "bar",
     data: {
       labels,
-      datasets: [{ data: records.map(r => r.wind), backgroundColor: '#70ad47' }]
+      datasets: [{ data: records.map(r => r.wind), backgroundColor: "#70ad47" }]
     },
     options: baseOptions
   });
 }
 
 async function fetchWeather() {
-  const raw = document.getElementById('cityInput').value.trim();
-  if (!raw) { showError('Please enter at least one city name.'); return; }
+  const raw = document.getElementById("cityInput").value.trim();
+  if (!raw) {
+    showError("Please enter at least one city name.");
+    return;
+  }
 
   hideError();
 
-  const cities = raw.split(',').map(c => c.trim()).filter(Boolean);
-  const btn = document.getElementById('fetchBtn');
+  const cities = raw.split(",").map(c => c.trim()).filter(Boolean);
+  const btn = document.getElementById("fetchBtn");
   btn.disabled = true;
-  showStatus('Fetching live weather data...');
+  showStatus("Fetching live weather data...");
 
   const records = [];
   const errors = [];
+
   await Promise.all(cities.map(async city => {
     try {
       records.push(await fetchCityWeather(city));
@@ -365,7 +388,7 @@ async function fetchWeather() {
     }
   }));
 
-  if (errors.length) showError(errors.join(' | '));
+  if (errors.length) showError(errors.join(" | "));
 
   if (records.length) {
     ensureChartArea();
@@ -373,12 +396,12 @@ async function fetchWeather() {
     renderCharts(records);
   }
 
-  showStatus('');
+  showStatus("");
   btn.disabled = false;
 }
 
-document.getElementById('cityInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter') fetchWeather();
+document.getElementById("cityInput").addEventListener("keydown", e => {
+  if (e.key === "Enter") fetchWeather();
 });
 </script>
 
