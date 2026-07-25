@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Weather Report</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', 'Segoe UI', Arial, Helvetica, sans-serif;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 20px 60px;
+    color: #263238;
+    background: linear-gradient(180deg, #eef3f8 0%, #f4f6f8 300px, #f4f6f8 100%);
+    min-height: 100vh;
+  }
+
+  .app-header {
+    padding: 44px 0 28px;
+    text-align: center;
+  }
+
+  h1 {
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 6px;
+    background: linear-gradient(135deg, #1a2733, #4a90d9);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  p.hint {
+    color: #78909c;
+    font-size: 14px;
+    margin: 0;
+  }
+
+  .search-card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(30,60,90,0.08);
+    padding: 20px 24px;
+    margin: 28px 0 20px;
+  }
+
+  .search-row {
+    display: flex;
+    gap: 10px;
+  }
+
+  #cityInput {
+    flex: 1;
+    padding: 12px 16px;
+    font-size: 14px;
+    font-family: inherit;
+    border: 1.5px solid #dde5eb;
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  #cityInput::placeholder { color: #b0bec5; }
+  #cityInput:focus {
+    border-color: #4a90d9;
+    box-shadow: 0 0 0 4px rgba(74,144,217,0.12);
+  }
+
+  #fetchBtn {
+    padding: 12px 26px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    background: linear-gradient(135deg, #4a90d9, #6f5fd9);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(74,144,217,0.3);
+    transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
+  }
+  #fetchBtn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(74,144,217,0.4); }
+  #fetchBtn:active { transform: translateY(0); }
+  #fetchBtn:disabled {
+    background: #b0bec5; cursor: not-allowed;
+    box-shadow: none; transform: none; opacity: 0.7;
+  }
+
+  #statusText {
+    font-size: 13px;
+    color: #78909c;
+    min-height: 16px;
+    padding-left: 4px;
+  }
+
+  #errorBox {
+    color: #c62828;
+    background: #fdecea;
+    border: 1px solid #f5c6c2;
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+    margin: 12px 0 20px;
+    display: none;
+  }
+
+  #tableWrap {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(30,60,90,0.08);
+    overflow: hidden;
+    margin-bottom: 28px;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 14px;
+  }
+
+  th, td {
+    padding: 13px 16px;
+    text-align: left;
+  }
+
+  th {
+    background: #f7f9fb;
+    color: #607d8b;
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid #eceff1;
+  }
+
+  tbody tr { transition: background 0.15s; }
+  tbody tr:nth-child(even) { background: #fbfcfd; }
+  tbody tr:hover { background: #eef6ff; }
+  td { border-top: 1px solid #f0f3f5; font-weight: 500; }
+  td:first-child { font-weight: 700; color: #1a2733; }
+
+  .chart-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+  }
+
+  .chart-box {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(30,60,90,0.08);
+    padding: 18px 18px 20px;
+    transition: transform 0.15s, box-shadow 0.2s;
+  }
+  .chart-box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(30,60,90,0.12);
+  }
+
+  .chart-title {
+    font-weight: 700;
+    font-size: 13px;
+    margin-bottom: 12px;
+    text-align: center;
+    color: #37474f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .chart-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  canvas {
+    max-height: 260px;
+  }
+
+  @media (max-width: 560px) {
+    .search-row { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <h1>Weather Report</h1>
+  <p class="hint">Enter one or more city names, separated by commas.</p>
+</div>
+
+<div class="search-card">
+  <div class="search-row">
+    <input id="cityInput" type="text" placeholder="e.g. Mumbai, Delhi, Ahmedabad" />
+    <button id="fetchBtn" onclick="fetchWeather()">Get Weather</button>
+  </div>
+</div>
+
+<div id="statusText"></div>
+<div id="errorBox"></div>
+<div id="resultsArea"></div>
+
+<script>
+const OWM_API_KEY = "fe8b56bc86011acbef988a7664f5288b";
+const OWM_BASE_URL = "https://api.openweathermap.org/data/2.5/weather";
+
+let tempChart, humidityChart, windChart;
+
+function titleCase(s) {
+  return s.replace(/\w\S*/g, t => t.charAt(0).toUpperCase() + t.slice(1));
+}
+
+async function fetchCityWeather(city) {
+  const params = new URLSearchParams({ q: city, appid: OWM_API_KEY, units: "metric" });
+  let res;
+  try {
+    res = await fetch(`${OWM_BASE_URL}?${params.toString()}`);
+  } catch (e) {
+    throw new Error(`${city}: network error — could not reach the weather API`);
+  }
+
+  if (!res.ok) {
+    if (res.status === 401) throw new Error(`${city}: invalid API key`);
+    if (res.status === 404) throw new Error(`${city}: city not found`);
+    if (res.status === 429) throw new Error(`${city}: rate limit exceeded`);
+    throw new Error(`${city}: HTTP ${res.status} error`);
+  }
+
+  const data = await res.json();
+  return {
+    city: data.name || city,
+    country: data.sys?.country || "N/A",
+    temp: data.main?.temp,
+    feels: data.main?.feels_like,
+    humidity: data.main?.humidity,
+    wind: data.wind?.speed,
+    condition: data.weather?.[0]?.description ? titleCase(data.weather[0].description) : "N/A"
+  };
+}
+
+function showStatus(msg) { document.getElementById('statusText').textContent = msg; }
+function showError(msg) {
+  const box = document.getElementById('errorBox');
+  box.textContent = msg;
+  box.style.display = 'block';
+}
+function hideError() {
+  const box = document.getElementById('errorBox');
+  box.textContent = '';
+  box.style.display = 'none';
+}
+
+function ensureChartArea() {
+  const area = document.getElementById('resultsArea');
+  if (!document.getElementById('tableWrap')) {
+    area.innerHTML = `
+      <div id="tableWrap"></div>
+      <div class="chart-grid">
+        <div class="chart-box">
+          <div class="chart-title"><span class="chart-dot" style="background:#e07b39"></span>Temperature (°C)</div>
+          <canvas id="tempCanvas"></canvas>
+        </div>
+        <div class="chart-box">
+          <div class="chart-title"><span class="chart-dot" style="background:#5b9bd5"></span>Humidity (%)</div>
+          <canvas id="humidityCanvas"></canvas>
+        </div>
+        <div class="chart-box">
+          <div class="chart-title"><span class="chart-dot" style="background:#70ad47"></span>Wind Speed (m/s)</div>
+          <canvas id="windCanvas"></canvas>
+        </div>
+      </div>
+    `;
+  }
+}
+
+function renderTable(records) {
+  const rows = records.map(r => `
+    <tr>
+      <td>${r.city}</td>
+      <td>${r.country}</td>
+      <td>${r.temp}°C</td>
+      <td>${r.feels}°C</td>
+      <td>${r.humidity}%</td>
+      <td>${r.wind} m/s</td>
+      <td>${r.condition}</td>
+    </tr>
+  `).join('');
+
+  document.getElementById('tableWrap').innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>City</th><th>Country</th><th>Temp</th><th>Feels Like</th>
+          <th>Humidity</th><th>Wind</th><th>Condition</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+function renderCharts(records) {
+  const labels = records.map(r => r.city);
+
+  const baseOptions = {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true } }
+  };
+
+  if (tempChart) tempChart.destroy();
+  tempChart = new Chart(document.getElementById('tempCanvas'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{ data: records.map(r => r.temp), backgroundColor: '#e07b39' }]
+    },
+    options: baseOptions
+  });
+
+  if (humidityChart) humidityChart.destroy();
+  humidityChart = new Chart(document.getElementById('humidityCanvas'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{ data: records.map(r => r.humidity), backgroundColor: '#5b9bd5' }]
+    },
+    options: baseOptions
+  });
+
+  if (windChart) windChart.destroy();
+  windChart = new Chart(document.getElementById('windCanvas'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{ data: records.map(r => r.wind), backgroundColor: '#70ad47' }]
+    },
+    options: baseOptions
+  });
+}
+
+async function fetchWeather() {
+  const raw = document.getElementById('cityInput').value.trim();
+  if (!raw) { showError('Please enter at least one city name.'); return; }
+
+  hideError();
+
+  const cities = raw.split(',').map(c => c.trim()).filter(Boolean);
+  const btn = document.getElementById('fetchBtn');
+  btn.disabled = true;
+  showStatus('Fetching live weather data...');
+
+  const records = [];
+  const errors = [];
+  await Promise.all(cities.map(async city => {
+    try {
+      records.push(await fetchCityWeather(city));
+    } catch (e) {
+      errors.push(e.message);
+    }
+  }));
+
+  if (errors.length) showError(errors.join(' | '));
+
+  if (records.length) {
+    ensureChartArea();
+    renderTable(records);
+    renderCharts(records);
+  }
+
+  showStatus('');
+  btn.disabled = false;
+}
+
+document.getElementById('cityInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') fetchWeather();
+});
+</script>
+
+</body>
+</html>
