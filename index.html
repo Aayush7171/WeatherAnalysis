@@ -3,228 +3,659 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Weather Report</title>
+<title>Live Weather Analysis</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet" />
 <style>
+  :root {
+    --bg: #eef4f1;
+    --ink: #132127;
+    --muted: #56717a;
+    --card: rgba(255, 255, 255, 0.88);
+    --line: rgba(19, 33, 39, 0.08);
+    --brand: #0d8f74;
+    --brand-dark: #0a5f50;
+    --hot: #d94841;
+    --humid: #1d78c1;
+    --windy: #6d56d9;
+    --pleasant: #2a9d67;
+    --cold: #2d5fd3;
+    --warn: #f4b63d;
+    --danger: #d94841;
+    --shadow: 0 18px 45px rgba(32, 55, 53, 0.12);
+  }
+
   * { box-sizing: border-box; }
 
   body {
-    font-family: 'Inter', 'Segoe UI', Arial, Helvetica, sans-serif;
-    max-width: 960px;
-    margin: 0 auto;
-    padding: 0 20px 60px;
-    color: #263238;
-    background: linear-gradient(180deg, #eef3f8 0%, #f4f6f8 300px, #f4f6f8 100%);
+    margin: 0;
     min-height: 100vh;
+    font-family: "Manrope", sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(circle at top left, rgba(13, 143, 116, 0.16), transparent 28%),
+      radial-gradient(circle at top right, rgba(45, 95, 211, 0.12), transparent 26%),
+      linear-gradient(180deg, #f5faf8 0%, var(--bg) 100%);
   }
 
-  .app-header {
-    padding: 44px 0 28px;
-    text-align: center;
+  .shell {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 28px 18px 56px;
+  }
+
+  .hero {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    border-radius: 28px;
+    padding: 28px;
+    background:
+      linear-gradient(135deg, rgba(255,255,255,0.92), rgba(239, 248, 245, 0.88)),
+      linear-gradient(135deg, rgba(13, 143, 116, 0.12), rgba(45, 95, 211, 0.1));
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
+  }
+
+  .hero::after {
+    content: "";
+    position: absolute;
+    inset: auto -80px -80px auto;
+    width: 240px;
+    height: 240px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(13, 143, 116, 0.22), transparent 68%);
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(19, 33, 39, 0.06);
+    color: var(--brand-dark);
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 
   h1 {
-    font-size: 30px;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    margin-bottom: 6px;
-    background: linear-gradient(135deg, #1a2733, #4a90d9);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    font-family: "Space Grotesk", sans-serif;
+    font-size: clamp(32px, 5vw, 52px);
+    line-height: 0.96;
+    margin: 16px 0 10px;
+    max-width: 760px;
   }
 
-  p.hint {
-    color: #78909c;
-    font-size: 14px;
+  .hero p {
+    max-width: 720px;
     margin: 0;
+    color: var(--muted);
+    font-size: 15px;
   }
 
-  .search-card {
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(30,60,90,0.08);
-    padding: 20px 24px;
-    margin: 28px 0 20px;
+  .panel {
+    background: var(--card);
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(10px);
+    border-radius: 22px;
+    box-shadow: var(--shadow);
+    padding: 22px;
+    margin-bottom: 18px;
   }
 
-  .search-row {
-    display: flex;
-    gap: 10px;
+  .panel-title {
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 19px;
+    margin: 0 0 6px;
+  }
+
+  .panel-subtitle {
+    margin: 0 0 18px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  .control-grid {
+    display: grid;
+    grid-template-columns: 2fr auto;
+    gap: 12px;
+    align-items: end;
+  }
+
+  .field-label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
   }
 
   #cityInput {
-    flex: 1;
-    padding: 12px 16px;
-    font-size: 14px;
-    font-family: inherit;
-    border: 1.5px solid #dde5eb;
-    border-radius: 8px;
+    width: 100%;
+    padding: 15px 16px;
+    border-radius: 16px;
+    border: 1px solid var(--line);
+    font: inherit;
+    font-size: 15px;
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--ink);
     outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
   }
-
-  #cityInput::placeholder { color: #b0bec5; }
 
   #cityInput:focus {
-    border-color: #4a90d9;
-    box-shadow: 0 0 0 4px rgba(74,144,217,0.12);
-  }
-
-  #fetchBtn {
-    padding: 12px 26px;
-    font-size: 14px;
-    font-weight: 600;
-    color: #fff;
-    background: linear-gradient(135deg, #4a90d9, #6f5fd9);
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    white-space: nowrap;
-    box-shadow: 0 4px 12px rgba(74,144,217,0.3);
-    transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
-  }
-
-  #fetchBtn:hover {
+    border-color: rgba(13, 143, 116, 0.5);
+    box-shadow: 0 0 0 4px rgba(13, 143, 116, 0.12);
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(74,144,217,0.4);
   }
 
-  #fetchBtn:active { transform: translateY(0); }
+  .button-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
 
-  #fetchBtn:disabled {
-    background: #b0bec5;
+  button {
+    border: none;
+    border-radius: 16px;
+    padding: 14px 18px;
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.18s, box-shadow 0.18s, opacity 0.18s;
+  }
+
+  button:hover {
+    transform: translateY(-1px);
+  }
+
+  button:disabled {
+    opacity: 0.6;
     cursor: not-allowed;
-    box-shadow: none;
     transform: none;
-    opacity: 0.7;
+  }
+
+  .primary-btn {
+    color: white;
+    background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+    box-shadow: 0 12px 26px rgba(13, 143, 116, 0.25);
+  }
+
+  .secondary-btn {
+    color: var(--ink);
+    background: rgba(19, 33, 39, 0.06);
   }
 
   #statusText {
-    font-size: 13px;
-    color: #78909c;
-    min-height: 16px;
-    padding-left: 4px;
-  }
-
-  #errorBox {
-    color: #c62828;
-    background: #fdecea;
-    border: 1px solid #f5c6c2;
-    border-radius: 8px;
-    padding: 12px 16px;
-    font-size: 13px;
-    margin: 12px 0 20px;
-    display: none;
-  }
-
-  #tableWrap {
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(30,60,90,0.08);
-    overflow: hidden;
-    margin-bottom: 28px;
-  }
-
-  table {
-    border-collapse: collapse;
-    width: 100%;
+    min-height: 20px;
+    margin-top: 14px;
+    color: var(--muted);
     font-size: 14px;
   }
 
+  #errorBox {
+    display: none;
+    margin-top: 14px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: rgba(217, 72, 65, 0.08);
+    border: 1px solid rgba(217, 72, 65, 0.18);
+    color: var(--danger);
+    font-size: 14px;
+  }
+
+  .favorites {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .favorite-chip {
+    border: 1px solid rgba(13, 143, 116, 0.16);
+    background: rgba(13, 143, 116, 0.08);
+    color: var(--brand-dark);
+    padding: 10px 12px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .favorite-chip button {
+    padding: 0;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(19, 33, 39, 0.08);
+    font-size: 13px;
+    line-height: 1;
+  }
+
+  .muted-empty {
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  .summary-grid,
+  .insight-grid,
+  .alert-grid,
+  .chart-grid {
+    display: grid;
+    gap: 14px;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+
+  .insight-grid {
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  }
+
+  .alert-grid,
+  .chart-grid {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  }
+
+  .stat-card,
+  .alert-card,
+  .chart-box,
+  .insight-card {
+    border-radius: 20px;
+    padding: 18px;
+    background: rgba(255, 255, 255, 0.86);
+    border: 1px solid var(--line);
+  }
+
+  .stat-label,
+  .insight-label {
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .stat-value {
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 30px;
+    font-weight: 700;
+  }
+
+  .stat-note,
+  .insight-value {
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  .alert-card {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .alert-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 6px;
+  }
+
+  .alert-high::before { background: var(--danger); }
+  .alert-moderate::before { background: var(--warn); }
+  .alert-normal::before { background: var(--pleasant); }
+
+  .alert-level {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 6px 8px;
+    border-radius: 999px;
+    margin-bottom: 10px;
+  }
+
+  .level-high {
+    background: rgba(217, 72, 65, 0.1);
+    color: var(--danger);
+  }
+
+  .level-moderate {
+    background: rgba(244, 182, 61, 0.16);
+    color: #9b6c00;
+  }
+
+  .level-normal {
+    background: rgba(42, 157, 103, 0.12);
+    color: var(--pleasant);
+  }
+
+  .table-wrap {
+    overflow: auto;
+    border-radius: 18px;
+    border: 1px solid var(--line);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 840px;
+    background: rgba(255, 255, 255, 0.78);
+  }
+
   th, td {
-    padding: 13px 16px;
+    padding: 14px 16px;
     text-align: left;
+    border-bottom: 1px solid rgba(19, 33, 39, 0.07);
+    font-size: 14px;
   }
 
   th {
-    background: #f7f9fb;
-    color: #607d8b;
-    font-weight: 700;
     font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    border-bottom: 2px solid #eceff1;
+    color: var(--muted);
+    background: rgba(19, 33, 39, 0.03);
   }
 
-  tbody tr { transition: background 0.15s; }
-  tbody tr:nth-child(even) { background: #fbfcfd; }
-  tbody tr:hover { background: #eef6ff; }
-  td { border-top: 1px solid #f0f3f5; font-weight: 500; }
-  td:first-child { font-weight: 700; color: #1a2733; }
-
-  .chart-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 20px;
+  tr:hover td {
+    background: rgba(13, 143, 116, 0.03);
   }
 
-  .chart-box {
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(30,60,90,0.08);
-    padding: 18px 18px 20px;
-    transition: transform 0.15s, box-shadow 0.2s;
+  .class-pill {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 7px 10px;
+    font-size: 12px;
+    font-weight: 800;
   }
 
-  .chart-box:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(30,60,90,0.12);
-  }
+  .class-hot { background: rgba(217, 72, 65, 0.12); color: var(--hot); }
+  .class-cold { background: rgba(45, 95, 211, 0.12); color: var(--cold); }
+  .class-humid { background: rgba(29, 120, 193, 0.12); color: var(--humid); }
+  .class-windy { background: rgba(109, 86, 217, 0.12); color: var(--windy); }
+  .class-pleasant { background: rgba(42, 157, 103, 0.12); color: var(--pleasant); }
 
   .chart-title {
-    font-weight: 700;
-    font-size: 13px;
-    margin-bottom: 12px;
-    text-align: center;
-    color: #37474f;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-  }
-
-  .chart-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    display: inline-block;
+    margin: 0 0 14px;
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 16px;
   }
 
   canvas {
     max-height: 260px;
   }
 
-  @media (max-width: 560px) {
-    .search-row { flex-direction: column; }
+  .anomaly-item {
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: rgba(19, 33, 39, 0.04);
+    margin-bottom: 10px;
+    font-size: 14px;
+  }
+
+  @media (max-width: 860px) {
+    .control-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .shell {
+      padding: 18px 14px 42px;
+    }
+
+    .hero,
+    .panel {
+      padding: 18px;
+      border-radius: 20px;
+    }
+
+    h1 {
+      font-size: 34px;
+    }
+
+    .button-row {
+      width: 100%;
+    }
+
+    .button-row button {
+      flex: 1;
+    }
   }
 </style>
 </head>
 <body>
+<div class="shell">
+  <section class="hero">
+    <div class="eyebrow">Live weather intelligence</div>
+    <h1>Track conditions, classify patterns, and catch strange weather fast.</h1>
+    <p>Search multiple cities, save a watchlist, surface extreme-weather alerts, classify conditions with browser-trained KNN, and flag anomalies against your locally stored history.</p>
+  </section>
 
-<div class="app-header">
-  <h1>Weather Report</h1>
-  <p class="hint">Enter one or more city names, separated by commas.</p>
+  <section class="panel">
+    <h2 class="panel-title">Search Cities</h2>
+    <p class="panel-subtitle">Enter one or more cities separated by commas, or load them from your saved watchlist.</p>
+    <div class="control-grid">
+      <div>
+        <label class="field-label" for="cityInput">Cities</label>
+        <input id="cityInput" type="text" placeholder="e.g. Mumbai, Delhi, Ahmedabad" />
+      </div>
+      <div class="button-row">
+        <button id="fetchBtn" class="primary-btn" onclick="fetchWeather()">Analyze Now</button>
+        <button class="secondary-btn" onclick="loadFavoritesIntoInput()">Use Favorites</button>
+        <button class="secondary-btn" onclick="saveCurrentFavorites()">Save Favorites</button>
+      </div>
+    </div>
+    <div id="statusText"></div>
+    <div id="errorBox"></div>
+  </section>
+
+  <section class="panel">
+    <h2 class="panel-title">Favorites / Watchlist</h2>
+    <p class="panel-subtitle">Saved locally in your browser so repeat checks only take one click.</p>
+    <div id="favoritesWrap" class="favorites"></div>
+  </section>
+
+  <div id="resultsArea"></div>
 </div>
-
-<div class="search-card">
-  <div class="search-row">
-    <input id="cityInput" type="text" placeholder="e.g. Mumbai, Delhi, Ahmedabad" />
-    <button id="fetchBtn" onclick="fetchWeather()">Get Weather</button>
-  </div>
-</div>
-
-<div id="statusText"></div>
-<div id="errorBox"></div>
-<div id="resultsArea"></div>
 
 <script>
 const WEATHER_FUNCTION_URL = "/.netlify/functions/weather";
+const FAVORITES_KEY = "weather-dashboard-favorites";
+const HISTORY_KEY = "weather-dashboard-history";
+const ALERT_RULES = { temp: 40, wind: 15, humidity: 90 };
 
-let tempChart, humidityChart, windChart;
+let tempChart;
+let humidityChart;
+let windChart;
 
 function titleCase(s) {
   return s.replace(/\w\S*/g, t => t.charAt(0).toUpperCase() + t.slice(1));
+}
+
+function uniqueCities(cities) {
+  const seen = new Set();
+  return cities
+    .map(city => city.trim())
+    .filter(Boolean)
+    .filter(city => {
+      const key = city.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+function getFavorites() {
+  try {
+    const favorites = JSON.parse(localStorage.getItem(FAVORITES_KEY) || "[]");
+    return Array.isArray(favorites) ? uniqueCities(favorites) : [];
+  } catch {
+    return [];
+  }
+}
+
+function setFavorites(favorites) {
+  localStorage.setItem(FAVORITES_KEY, JSON.stringify(uniqueCities(favorites)));
+  renderFavorites();
+}
+
+function renderFavorites() {
+  const wrap = document.getElementById("favoritesWrap");
+  const favorites = getFavorites();
+
+  if (!favorites.length) {
+    wrap.innerHTML = `<div class="muted-empty">No favorites saved yet.</div>`;
+    return;
+  }
+
+  wrap.innerHTML = favorites.map(city => `
+    <div class="favorite-chip">
+      <span>${city}</span>
+      <button type="button" onclick="removeFavorite('${city.replace(/'/g, "\\'")}')" aria-label="Remove ${city}">×</button>
+    </div>
+  `).join("");
+}
+
+function removeFavorite(city) {
+  setFavorites(getFavorites().filter(item => item.toLowerCase() !== city.toLowerCase()));
+}
+
+function loadFavoritesIntoInput() {
+  const favorites = getFavorites();
+  if (!favorites.length) {
+    showError("No saved favorites yet.");
+    return;
+  }
+
+  document.getElementById("cityInput").value = favorites.join(", ");
+  hideError();
+}
+
+function saveCurrentFavorites() {
+  const raw = document.getElementById("cityInput").value.trim();
+  const cities = uniqueCities(raw.split(","));
+
+  if (!cities.length) {
+    showError("Enter at least one city before saving favorites.");
+    return;
+  }
+
+  setFavorites(cities);
+  hideError();
+  showStatus("Favorites saved locally.");
+}
+
+function getHistory() {
+  try {
+    const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+    return Array.isArray(history) ? history : [];
+  } catch {
+    return [];
+  }
+}
+
+function appendHistory(records) {
+  const history = getHistory();
+  const updated = [...history, ...records.map(record => ({
+    city: record.city,
+    temp: record.temp,
+    humidity: record.humidity,
+    wind: record.wind,
+    condition: record.condition,
+    label: generateLabel(record),
+    fetchedAt: new Date().toISOString()
+  }))];
+
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(updated.slice(-500)));
+}
+
+function generateLabel(record) {
+  if (record.wind > 12) return "Windy";
+  if (record.humidity >= 75) return "Humid";
+  if (record.temp >= 32) return "Hot";
+  if (record.temp <= 18) return "Cold";
+  return "Pleasant";
+}
+
+function classifyByKNN(record, trainingSet, k = 5) {
+  if (trainingSet.length < 5) {
+    return { label: generateLabel(record), note: "Rule-based fallback" };
+  }
+
+  const neighbors = trainingSet
+    .map(sample => ({
+      ...sample,
+      distance: Math.sqrt(
+        ((sample.temp ?? 0) - record.temp) ** 2 +
+        ((sample.humidity ?? 0) - record.humidity) ** 2 +
+        ((sample.wind ?? 0) - record.wind) ** 2
+      )
+    }))
+    .sort((a, b) => a.distance - b.distance)
+    .slice(0, Math.min(k, trainingSet.length));
+
+  const votes = neighbors.reduce((acc, sample) => {
+    acc[sample.label] = (acc[sample.label] || 0) + 1;
+    return acc;
+  }, {});
+
+  const label = Object.entries(votes).sort((a, b) => b[1] - a[1])[0]?.[0] || generateLabel(record);
+  return { label, note: `KNN using ${neighbors.length} nearest historical samples` };
+}
+
+function annotateAlerts(record) {
+  const messages = [];
+
+  if (record.temp > ALERT_RULES.temp) messages.push(`High temperature (${record.temp.toFixed(1)}°C)`);
+  if (record.wind > ALERT_RULES.wind) messages.push(`Strong wind (${record.wind.toFixed(1)} m/s)`);
+  if (record.humidity > ALERT_RULES.humidity) messages.push(`Very high humidity (${record.humidity}%)`);
+
+  const level = messages.length >= 2 ? "High" : messages.length === 1 ? "Moderate" : "Normal";
+  return { level, message: messages.join(" | ") || "No critical alert" };
+}
+
+function detectAnomaly(record, history) {
+  const cityHistory = history.filter(item => item.city?.toLowerCase() === record.city.toLowerCase());
+  if (cityHistory.length < 3) return null;
+
+  const metrics = [
+    { key: "temp", label: "temperature", unit: "°C" },
+    { key: "humidity", label: "humidity", unit: "%" },
+    { key: "wind", label: "wind speed", unit: " m/s" }
+  ];
+
+  let strongest = null;
+
+  for (const metric of metrics) {
+    const values = cityHistory.map(item => Number(item[metric.key])).filter(Number.isFinite);
+    if (values.length < 3) continue;
+
+    const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
+    const variance = values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length;
+    const std = Math.sqrt(variance);
+    if (!std) continue;
+
+    const current = Number(record[metric.key]);
+    const zScore = (current - mean) / std;
+    if (!strongest || Math.abs(zScore) > Math.abs(strongest.zScore)) {
+      strongest = { ...metric, current, mean, zScore };
+    }
+  }
+
+  if (!strongest || Math.abs(strongest.zScore) < 2) return null;
+  const direction = strongest.zScore > 0 ? "above" : "below";
+  return `${record.city}'s ${strongest.label} today is ${Math.abs(strongest.zScore).toFixed(1)} standard deviations ${direction} normal (current ${strongest.current.toFixed(1)}${strongest.unit}, avg ${strongest.mean.toFixed(1)}${strongest.unit}).`;
 }
 
 async function fetchCityWeather(city) {
@@ -233,17 +664,15 @@ async function fetchCityWeather(city) {
 
   try {
     res = await fetch(`${WEATHER_FUNCTION_URL}?${params.toString()}`);
-  } catch (e) {
+  } catch {
     throw new Error(`${city}: network error - could not reach the weather service`);
   }
 
   if (!res.ok) {
     const payload = await res.json().catch(() => ({}));
-
     if (res.status === 404) throw new Error(`${city}: city not found`);
     if (res.status === 429) throw new Error(`${city}: rate limit exceeded`);
     if (res.status === 500) throw new Error(payload.error || `${city}: server error`);
-
     throw new Error(payload.error || `${city}: HTTP ${res.status} error`);
   }
 
@@ -259,7 +688,9 @@ async function fetchCityWeather(city) {
   };
 }
 
-function showStatus(msg) { document.getElementById("statusText").textContent = msg; }
+function showStatus(msg) {
+  document.getElementById("statusText").textContent = msg;
+}
 
 function showError(msg) {
   const box = document.getElementById("errorBox");
@@ -273,63 +704,167 @@ function hideError() {
   box.style.display = "none";
 }
 
-function ensureChartArea() {
-  const area = document.getElementById("resultsArea");
+function classNameForLabel(label) {
+  return `class-${label.toLowerCase()}`;
+}
 
-  if (!document.getElementById("tableWrap")) {
-    area.innerHTML = `
-      <div id="tableWrap"></div>
+function renderResults(records, classifierNote) {
+  const analysis = buildAnalysis(records);
+  const highestAlerts = records.filter(record => record.alert.level !== "Normal");
+  const anomalies = records.filter(record => record.anomaly);
+
+  document.getElementById("resultsArea").innerHTML = `
+    <section class="panel">
+      <h2 class="panel-title">Overview</h2>
+      <p class="panel-subtitle">Live metrics across the cities you just analyzed.</p>
+      <div class="summary-grid">
+        <div class="stat-card">
+          <div class="stat-label">Cities analyzed</div>
+          <div class="stat-value">${records.length}</div>
+          <div class="stat-note">Current live snapshot</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Average temperature</div>
+          <div class="stat-value">${analysis.avgTemp.toFixed(1)}°C</div>
+          <div class="stat-note">Across selected cities</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Most humid</div>
+          <div class="stat-value">${analysis.mostHumid.city}</div>
+          <div class="stat-note">${analysis.mostHumid.humidity}% humidity</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Highest wind</div>
+          <div class="stat-value">${analysis.windiest.city}</div>
+          <div class="stat-note">${analysis.windiest.wind.toFixed(1)} m/s</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel-title">Alerts</h2>
+      <p class="panel-subtitle">Extreme-condition flags based on your configured thresholds.</p>
+      <div class="alert-grid">
+        ${records.map(record => `
+          <div class="alert-card alert-${record.alert.level.toLowerCase()}">
+            <div class="alert-level level-${record.alert.level.toLowerCase()}">${record.alert.level}</div>
+            <div class="panel-title">${record.city}</div>
+            <div class="panel-subtitle">${record.country}</div>
+            <div>${record.alert.message}</div>
+          </div>
+        `).join("")}
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel-title">Insights</h2>
+      <p class="panel-subtitle">Classifier status and live highlights from this fetch.</p>
+      <div class="insight-grid">
+        <div class="insight-card">
+          <div class="insight-label">Classifier</div>
+          <div class="insight-value">${classifierNote}</div>
+        </div>
+        <div class="insight-card">
+          <div class="insight-label">Hottest city</div>
+          <div class="insight-value">${analysis.hottest.city} at ${analysis.hottest.temp.toFixed(1)}°C</div>
+        </div>
+        <div class="insight-card">
+          <div class="insight-label">Coldest city</div>
+          <div class="insight-value">${analysis.coldest.city} at ${analysis.coldest.temp.toFixed(1)}°C</div>
+        </div>
+        <div class="insight-card">
+          <div class="insight-label">Cities in alert</div>
+          <div class="insight-value">${highestAlerts.length ? highestAlerts.map(item => item.city).join(", ") : "None right now"}</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel-title">City Analysis Table</h2>
+      <p class="panel-subtitle">Condition classification and anomaly checks are included per city.</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>City</th>
+              <th>Country</th>
+              <th>Temp</th>
+              <th>Feels Like</th>
+              <th>Humidity</th>
+              <th>Wind</th>
+              <th>Condition</th>
+              <th>Class</th>
+              <th>Alert</th>
+              <th>Anomaly</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${records.map(record => `
+              <tr>
+                <td>${record.city}</td>
+                <td>${record.country}</td>
+                <td>${record.temp.toFixed(1)}°C</td>
+                <td>${record.feels.toFixed(1)}°C</td>
+                <td>${record.humidity}%</td>
+                <td>${record.wind.toFixed(1)} m/s</td>
+                <td>${record.condition}</td>
+                <td><span class="class-pill ${classNameForLabel(record.classification)}">${record.classification}</span></td>
+                <td>${record.alert.message}</td>
+                <td>${record.anomaly || "Normal range"}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel-title">Charts</h2>
+      <p class="panel-subtitle">A quick visual read on temperature, humidity, and wind.</p>
       <div class="chart-grid">
         <div class="chart-box">
-          <div class="chart-title"><span class="chart-dot" style="background:#e07b39"></span>Temperature (&deg;C)</div>
+          <h3 class="chart-title">Temperature</h3>
           <canvas id="tempCanvas"></canvas>
         </div>
         <div class="chart-box">
-          <div class="chart-title"><span class="chart-dot" style="background:#5b9bd5"></span>Humidity (%)</div>
+          <h3 class="chart-title">Humidity</h3>
           <canvas id="humidityCanvas"></canvas>
         </div>
         <div class="chart-box">
-          <div class="chart-title"><span class="chart-dot" style="background:#70ad47"></span>Wind Speed (m/s)</div>
+          <h3 class="chart-title">Wind Speed</h3>
           <canvas id="windCanvas"></canvas>
         </div>
       </div>
-    `;
-  }
+    </section>
+
+    <section class="panel">
+      <h2 class="panel-title">Anomaly Detection</h2>
+      <p class="panel-subtitle">Z-score based comparison against locally stored city history.</p>
+      ${anomalies.length
+        ? anomalies.map(record => `<div class="anomaly-item">${record.anomaly}</div>`).join("")
+        : `<div class="muted-empty">No strong anomalies detected yet. More repeated runs improve the baseline.</div>`}
+    </section>
+  `;
+
+  renderCharts(records);
 }
 
-function renderTable(records) {
-  const rows = records.map(r => `
-    <tr>
-      <td>${r.city}</td>
-      <td>${r.country}</td>
-      <td>${r.temp}&deg;C</td>
-      <td>${r.feels}&deg;C</td>
-      <td>${r.humidity}%</td>
-      <td>${r.wind} m/s</td>
-      <td>${r.condition}</td>
-    </tr>
-  `).join("");
-
-  document.getElementById("tableWrap").innerHTML = `
-    <table>
-      <thead>
-        <tr>
-          <th>City</th><th>Country</th><th>Temp</th><th>Feels Like</th>
-          <th>Humidity</th><th>Wind</th><th>Condition</th>
-        </tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>
-  `;
+function buildAnalysis(records) {
+  const avgTemp = records.reduce((sum, record) => sum + record.temp, 0) / records.length;
+  const hottest = [...records].sort((a, b) => b.temp - a.temp)[0];
+  const coldest = [...records].sort((a, b) => a.temp - b.temp)[0];
+  const mostHumid = [...records].sort((a, b) => b.humidity - a.humidity)[0];
+  const windiest = [...records].sort((a, b) => b.wind - a.wind)[0];
+  return { avgTemp, hottest, coldest, mostHumid, windiest };
 }
 
 function renderCharts(records) {
-  const labels = records.map(r => r.city);
+  const labels = records.map(record => record.city);
 
   const baseOptions = {
     responsive: true,
     plugins: { legend: { display: false } },
-    scales: { y: { beginAtZero: true } }
+    scales: { y: { beginAtZero: true, grid: { color: "rgba(19,33,39,0.08)" } } }
   };
 
   if (tempChart) tempChart.destroy();
@@ -337,7 +872,7 @@ function renderCharts(records) {
     type: "bar",
     data: {
       labels,
-      datasets: [{ data: records.map(r => r.temp), backgroundColor: "#e07b39" }]
+      datasets: [{ data: records.map(record => record.temp), backgroundColor: "#d94841", borderRadius: 10 }]
     },
     options: baseOptions
   });
@@ -347,7 +882,7 @@ function renderCharts(records) {
     type: "bar",
     data: {
       labels,
-      datasets: [{ data: records.map(r => r.humidity), backgroundColor: "#5b9bd5" }]
+      datasets: [{ data: records.map(record => record.humidity), backgroundColor: "#1d78c1", borderRadius: 10 }]
     },
     options: baseOptions
   });
@@ -357,7 +892,7 @@ function renderCharts(records) {
     type: "bar",
     data: {
       labels,
-      datasets: [{ data: records.map(r => r.wind), backgroundColor: "#70ad47" }]
+      datasets: [{ data: records.map(record => record.wind), backgroundColor: "#6d56d9", borderRadius: 10 }]
     },
     options: baseOptions
   });
@@ -371,39 +906,62 @@ async function fetchWeather() {
   }
 
   hideError();
-
-  const cities = raw.split(",").map(c => c.trim()).filter(Boolean);
   const btn = document.getElementById("fetchBtn");
-  btn.disabled = true;
-  showStatus("Fetching live weather data...");
+  const cities = uniqueCities(raw.split(","));
+  const history = getHistory();
+  const trainingSet = history.map(item => ({
+    temp: Number(item.temp),
+    humidity: Number(item.humidity),
+    wind: Number(item.wind),
+    label: item.label || generateLabel(item)
+  })).filter(item => [item.temp, item.humidity, item.wind].every(Number.isFinite));
 
+  btn.disabled = true;
+  showStatus("Fetching live weather data and comparing it with your local history...");
+
+  const results = await Promise.allSettled(cities.map(city => fetchCityWeather(city)));
   const records = [];
   const errors = [];
+  let classifierNote = "Rule-based fallback";
 
-  await Promise.all(cities.map(async city => {
-    try {
-      records.push(await fetchCityWeather(city));
-    } catch (e) {
-      errors.push(e.message);
+  for (const result of results) {
+    if (result.status === "rejected") {
+      errors.push(result.reason.message || String(result.reason));
+      continue;
     }
-  }));
+
+    const record = result.value;
+    const classification = classifyByKNN(record, trainingSet);
+    classifierNote = classification.note;
+    const alert = annotateAlerts(record);
+    const anomaly = detectAnomaly(record, history);
+
+    records.push({
+      ...record,
+      classification: classification.label,
+      alert,
+      anomaly
+    });
+  }
 
   if (errors.length) showError(errors.join(" | "));
 
   if (records.length) {
-    ensureChartArea();
-    renderTable(records);
-    renderCharts(records);
+    renderResults(records, classifierNote);
+    appendHistory(records);
+    showStatus(`Analyzed ${records.length} city${records.length > 1 ? "ies" : ""}. History updated locally.`);
+  } else {
+    showStatus("");
   }
 
-  showStatus("");
   btn.disabled = false;
 }
 
-document.getElementById("cityInput").addEventListener("keydown", e => {
-  if (e.key === "Enter") fetchWeather();
+document.getElementById("cityInput").addEventListener("keydown", event => {
+  if (event.key === "Enter") fetchWeather();
 });
-</script>
 
+renderFavorites();
+</script>
 </body>
 </html>
